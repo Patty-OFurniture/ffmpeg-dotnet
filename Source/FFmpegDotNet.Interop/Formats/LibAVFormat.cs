@@ -1,6 +1,7 @@
 
 #region Using Directives
 
+using FFmpegDotNet.Interop.Utilities;
 using System;
 using System.Runtime.InteropServices;
 
@@ -14,12 +15,19 @@ namespace FFmpegDotNet.Interop.Formats
     public class LibAVFormat
     {
         #region Public Methods
-        
+
         /// <summary>
         /// Initializes libavformat and registers all the muxers, demuxers and protocols.
         /// </summary>
+        [Obsolete("Deprecated since ffmpeg 4.0.")]
         [DllImport(Libraries.AVFormat)]
         public static extern void av_register_all();
+
+        [DllImport(Libraries.AVFormat)]
+        public static extern IntPtr avformat_alloc_context();
+
+        [DllImport(Libraries.AVFormat)]
+        public static extern void avformat_free_context(IntPtr avFormatContext);
 
         /// <summary>
         /// Open an input stream and read the header. The codecs are not opened. The stream must be closed with avformat_close_input().
@@ -59,6 +67,30 @@ namespace FFmpegDotNet.Interop.Formats
         /// <returns>Returns a value greater than or equal to 0 when everything went alright and a negative number otherwise.</returns>
         [DllImport(Libraries.AVFormat)]
         public static extern int avformat_find_stream_info(IntPtr ic, IntPtr options);
+
+        /// <summary>
+        /// int av_find_best_stream(
+        ///     AVFormatContext *ic,
+        ///     enum AVMediaType type,
+        ///     int wanted_stream_nb,
+        ///     int related_stream,
+        ///     const struct AVCodec **decoder_ret,
+        ///     int flags);
+        /// </summary>
+        /// <param name="ic"></param>
+        /// <param name="type"></param>
+        /// <param name="wanted_stream_nb"></param>
+        /// <param name="related_stream"></param>
+        /// <param name="decoder_ret"></param>
+        /// <param name="flags"></param>
+        /// <returns></returns>
+        [DllImport(Libraries.AVFormat)]
+        public static extern int av_find_best_stream(IntPtr ic, // AVFormatContext
+                        AVMediaType type,
+                        int wanted_stream_nb,
+                        int related_stream,
+                        IntPtr decoder_ret, // AVCodec **d
+                        int flags);
 
         /// <summary>
         /// Retrieves the next frame of a stream. This function returns what is stored in the file, and does not validate that what is there are valid frames for
