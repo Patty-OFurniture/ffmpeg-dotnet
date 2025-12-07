@@ -38,6 +38,9 @@ namespace FFmpegDotNet.Interop.Utilities
         [DllImport(Libraries.AVUtil)]
         public static extern IntPtr av_malloc(UIntPtr size);
 
+        [DllImport(Libraries.AVUtil)]
+        public static extern AVSampleFormat av_get_packed_sample_fmt(AVSampleFormat sample_fmt);
+
         #endregion
     }
 }
