@@ -2,6 +2,7 @@
 #region Using Directives
 
 using FFmpegDotNet.Interop.Codecs;
+using FFmpegDotNet.Interop.Utilities;
 using System;
 using System.Runtime.InteropServices;
 
@@ -66,29 +67,49 @@ namespace FFmpegDotNet.Interop.Formats
         public IntPtr streams;
 
         /// <summary>
-        /// Contains the input or output file name. When demuxing the file name is set by avformat_open_input(). When muxing the file name may be set byt the
-        /// caller before avformat_write_header().
+        /// Number of elements in AVFormatContext.stream_groups.
+        /// Set by avformat_stream_group_create(), must not be modified by any other code.
         /// </summary>
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 1024)]
-        public string filename;
+        uint nb_stream_groups;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        IntPtr stream_groups;
+
+        /// <summary>
+        /// Contains the number of chapters in AVChapter array. When muxing, chapters are normally written in the file header, so nb_chapters should normally be
+        /// initialized before write_header is called. Some muxers (e.g. mov and mkv) can also write chapters in the trailer.  To write chapters in the trailer,
+        /// nb_chapters must be zero when write_header is called and non-zero when write_trailer is called. When muxing this is set by the user and when demuxing
+        /// this is set by libavformat.
+        /// </summary>
+        public uint nb_chapters;
+
+        /// <summary>
+        /// Contains a pointer to an array of pointers of <see cref="AVChapter"/> chapters.
+        /// </summary>
+        public IntPtr chapters;
+
+        [MarshalAs(UnmanagedType.LPStr)]
+        public string url;
 
         /// <summary>
         /// Contains the position of the first frame of the component, in AV_TIME_BASE fractional seconds. NEVER set this value directly: It is deduced from
         /// the AVStream values. The start time is for demuxing only and is set by libavformat.
         /// </summary>
-        public long start_time;
+        public Int64 start_time;
 
         /// <summary>
         /// Contains the duration of the stream, in AV_TIME_BASE fractional seconds. Only set this value if you know none of the individual stream durations
         /// and also do not set any of them. This is deduced from the AVStream values if not set. The duration is for demuxing only and is set by libavformat.
         /// </summary>
-        public long duration;
+        public Int64 duration;
 
         /// <summary>
         /// Contains the total stream bitrate in bit/s, 0 if not available. Never set it directly if the file_size and the duration are known as FFmpeg can
         /// compute it automatically.
         /// </summary>
-        public long bit_rate;
+        public Int64 bit_rate;
 
         /// <summary>
         /// Contains the size of the packets.
@@ -104,19 +125,19 @@ namespace FFmpegDotNet.Interop.Formats
         /// Contains the flags modifying the (de)muxer behaviour. A combination of AVFMT_FLAG_*. Set by the user before
         /// avformat_open_input()/avformat_write_header().
         /// </summary>
-        public int flags;
+        AvFormatFlags flags;
 
         /// <summary>
         /// Contains the maximum size of the data read from input for determining the input container format. The probe size is for demuxing only and is set
         /// by the caller before avformat_open_input().
         /// </summary>
-        public long probesize;
+        public Int64 probesize;
 
         /// <summary>
         /// Contains the maximum duration (in AV_TIME_BASE units) of the data read from input in avformat_find_stream_info(). The maximum analyze duration
         /// is for demuxing only and is set by the caller before avformat_find_stream_info(). Can be set to 0 to let avformat choose using a heuristic.
         /// </summary>
-        public long max_analyze_duration;
+        public Int64 max_analyze_duration;
 
         /// <summary>
         /// Contains the key.
@@ -154,43 +175,13 @@ namespace FFmpegDotNet.Interop.Formats
         public AVCodecID subtitle_codec_id;
 
         /// <summary>
-        /// Contains the maximum amount of memory in bytes to use for the index of each stream. If the index exceeds this size, entries will be discarded as
-        /// needed to maintain a smaller size. This can lead to slower or less accurate seeking (depends on demuxer). Demuxers for which a full in-memory index
-        /// is mandatory will ignore this. When muxing this is unused and when demuxnig this is set by the user.
+        /// Contains the forced data codec ID. For demuxing thsi is set by the user.
         /// </summary>
-        public uint max_index_size;
+        public AVCodecID data_codec_id;
 
-        /// <summary>
-        /// Contains the maximum amount of memory in bytes to use for buffering frames obtained from realtime capture devices.
-        /// </summary>
-        public uint max_picture_buffer;
+        IntPtr metadata; // if count == 0, elems does not exist
 
-        /// <summary>
-        /// Contains the number of chapters in AVChapter array. When muxing, chapters are normally written in the file header, so nb_chapters should normally be
-        /// initialized before write_header is called. Some muxers (e.g. mov and mkv) can also write chapters in the trailer.  To write chapters in the trailer,
-        /// nb_chapters must be zero when write_header is called and non-zero when write_trailer is called. When muxing this is set by the user and when demuxing
-        /// this is set by libavformat.
-        /// </summary>
-        public uint nb_chapters;
-
-        /// <summary>
-        /// Contains a pointer to an array of pointers of <see cref="AVChapter"/> chapters.
-        /// </summary>
-        public IntPtr chapters;
-
-        /// <summary>
-        /// Contains the metadata that applies to the whole file. When demuxing this is set by libavformat in avformat_open_input(). When muxing this may be set
-        /// by the caller before avformat_write_header(). Freed by libavformat in avformat_free_context().
-        /// </summary>
-        public IntPtr metadata;
-
-        /// <summary>
-        /// Contains the start time of the stream in real world time, in microseconds since the Unix epoch (00:00 1st January 1970). That is, pts=0 in the stream
-        /// was captured at this real world time. When muxing this is set by the caller before avformat_write_header(). If set to either 0 or AV_NOPTS_VALUE, then
-        /// the current wall-time will be used. When demuxing this is set by libavformat. AV_NOPTS_VALUE if unknown. Note that the value may become known after
-        /// some number of frames have been received.
-        /// </summary>
-        public long start_time_realtime;
+        Int64 start_time_realtime;
 
         /// <summary>
         /// Contains the number of frames used for determining the framerate in avformat_find_stream_info(). This is for demuxing only and is set by the caller
@@ -214,7 +205,21 @@ namespace FFmpegDotNet.Interop.Formats
         /// <summary>
         /// Contains the flags for enabling debugging.
         /// </summary>
-        public int debug;
+        public int debug; // #define FF_FDEBUG_TS 0x0001
+
+        int max_streams;
+
+        /// <summary>
+        /// Contains the maximum amount of memory in bytes to use for the index of each stream. If the index exceeds this size, entries will be discarded as
+        /// needed to maintain a smaller size. This can lead to slower or less accurate seeking (depends on demuxer). Demuxers for which a full in-memory index
+        /// is mandatory will ignore this. When muxing this is unused and when demuxnig this is set by the user.
+        /// </summary>
+        public uint max_index_size;
+
+        /// <summary>
+        /// Contains the maximum amount of memory in bytes to use for buffering frames obtained from realtime capture devices.
+        /// </summary>
+        public uint max_picture_buffer;
 
         /// <summary>
         /// Conatins the maximum buffering duration for interleaving. To ensure all the streams are interleaved correctly, av_interleaved_write_frame() will
@@ -223,39 +228,12 @@ namespace FFmpegDotNet.Interop.Formats
         /// timestamps of the first and the last packet in the muxing queue, above which libavformat will output a packet regardless of whether it has queued
         /// a packet for all the streams. This is for muxing only and is set by the caller before avformat_write_header().
         /// </summary>
-        public long max_interleave_delta;
-
-        /// <summary>
-        /// Contains a value that allows non-standard and experimental extension.
-        /// </summary>
-        public int strict_std_compliance;
-
-        /// <summary>
-        /// Contains flags for the user to detect events happening on the file. Flags must be cleared by the user once the event has been handled.
-        /// </summary>
-        public int event_flags;
+        public Int64 max_interleave_delta;
 
         /// <summary>
         /// Contains the maximum number of packets to read while waiting for the first timestamp. This is for decoding only.
         /// </summary>
         public int max_ts_probe;
-
-        /// <summary>
-        /// Contains a value that determines wheter negative timestamps are avoided during muxing. Any value of the AVFMT_AVOID_NEG_TS_* constants. Note, this
-        /// only works when using av_interleaved_write_frame. (interleave_packet_per_dts is in use). This is only used for muxing and set by the user.
-        /// </summary>
-        public int avoid_negative_ts;
-
-        /// <summary>
-        /// Contains the transport stream ID. This will be moved into demuxer private options. Thus no API/ABI compatibility.
-        /// </summary>
-        public int ts_id;
-
-        /// <summary>
-        /// Contains the audio preload in microseconds. Note, not all formats support this and unpredictable things may happen if it is used when not supported.
-        /// When encoding this is set by the user via <see cref="AVOptions"/> (no direct access). When decoding this is not used.
-        /// </summary>
-        public int audio_preload;
 
         /// <summary>
         /// Contains the maximum chunk time in microseconds. Note, not all formats support this and unpredictable things may happen if it is used when not
@@ -269,17 +247,49 @@ namespace FFmpegDotNet.Interop.Formats
         /// </summary>
         public int max_chunk_size;
 
+        int max_probe_packets;
+
+        /// <summary>
+        /// Contains a value that allows non-standard and experimental extension.
+        /// </summary>
+        public int strict_std_compliance;
+
+        /// <summary>
+        /// Contains flags for the user to detect events happening on the file. Flags must be cleared by the user once the event has been handled.
+        /// </summary>
+        public int event_flags; // #define AVFMT_EVENT_FLAG_METADATA_UPDATED 0x0001
+
+        /// <summary>
+        /// Contains a value that determines wheter negative timestamps are avoided during muxing. Any value of the AVFMT_AVOID_NEG_TS_* constants. Note, this
+        /// only works when using av_interleaved_write_frame. (interleave_packet_per_dts is in use). This is only used for muxing and set by the user.
+        /// </summary>
+        /*
+            #define AVFMT_AVOID_NEG_TS_AUTO             -1 ///< Enabled when required by target format
+            #define AVFMT_AVOID_NEG_TS_DISABLED          0 ///< Do not shift timestamps even when they are negative.
+            #define AVFMT_AVOID_NEG_TS_MAKE_NON_NEGATIVE 1 ///< Shift timestamps so they are non negative
+            #define AVFMT_AVOID_NEG_TS_MAKE_ZERO         2 ///< Shift timestamps so that they start at 0
+        */
+        public int avoid_negative_ts;
+
+        /// <summary>
+        /// Contains the audio preload in microseconds. Note, not all formats support this and unpredictable things may happen if it is used when not supported.
+        /// When encoding this is set by the user via <see cref="AVOptions"/> (no direct access). When decoding this is not used.
+        /// </summary>
+        public int audio_preload;
+
         /// <summary>
         /// Contains a value that forces the use of wallclock timestamps as pts/dts of packets. This has undefined results in the presence of B frames. When
         /// encoding this is unused. When decoding this is set by the user via <see cref="AVOptions"/> (no direct access).
         /// </summary>
-        public int use_wallclock_as_timestamps;
+        int use_wallclock_as_timestamps;
+
+        int skip_estimate_duration_from_pts;
 
         /// <summary>
-        /// Contains the avio flags, used to force AVIO_FLAG_DIRECT. When encoding this is unused. When decoding this  is set by the user via
+        /// Contains the avio flags, used to force AVIO_FLAG_DIRECT. When encoding this is unused. When decoding this is set by the user via
         /// <see cref="AVOptions"/> (no direct access).
         /// </summary>
-        public int avio_flags;
+        int avio_flags;
 
         /// <summary>
         /// The duration field can be estimated through various ways, and this field can be used to know how the duration was estimated. When encoding this
@@ -291,7 +301,7 @@ namespace FFmpegDotNet.Interop.Formats
         /// Contains the number of bytes that are skipped initially when opening a stream. When encoding this is not used. When decoding this is set by the
         /// user via AVOptions (no direct access).
         /// </summary>
-        public long skip_initial_bytes;
+        public Int64 skip_initial_bytes;
 
         /// <summary>
         /// Contains a value for correcting single timestamp overflows. When enocding this is not used. When decoding this is set by the user via AVOptions
@@ -338,9 +348,18 @@ namespace FFmpegDotNet.Interop.Formats
         public string format_whitelist;
 
         /// <summary>
-        /// Contains an opaque field for libavformat internal usage. Must not be accessed in any way by callers.
+        /// Contains a comma-separated list of allowed protocols. This is not used while encoding. When decoding this is set by the user through AVOptions (no
+        /// direct access)
         /// </summary>
-        public IntPtr @internal;
+        [MarshalAs(UnmanagedType.LPStr)]
+        public string protocol_whitelist;
+
+        /// <summary>
+        /// Contains a comma-separated list of disallowed protocols. This is not used while encoding. When decoding this is set by the user through AVOptions
+        /// (no direct access).
+        /// </summary>
+        [MarshalAs(UnmanagedType.LPStr)]
+        public string protocol_blacklist;
 
         /// <summary>
         /// Contains an IO repositioned flag. This is set by avformat when the underlaying IO context read pointer is repositioned, for example when doing
@@ -401,27 +420,6 @@ namespace FFmpegDotNet.Interop.Formats
         public UIntPtr dump_separator;
 
         /// <summary>
-        /// Contains the forced data codec ID. For demuxing thsi is set by the user.
-        /// </summary>
-        public AVCodecID data_codec_id;
-
-        /// <summary>
-        /// Contains a callback, which is called to open further IO contexts when needed for demuxing. This can be set by the user application to perform
-        /// security checks on the URLs before opening them. The function should behave like avio_open2(), AVFormatContext is provided as contextual
-        /// information and to reach AVFormatContext.opaque. If <c>null</c> then some simple checks are used together with avio_open2(). Must not be accessed
-        /// directly from outside avformat. For demuxing this is ste by the user. This is deprecated, use io_open and io_close instead.
-        /// </summary>
-        [MarshalAs(UnmanagedType.FunctionPtr)]
-        public OpenCallback open_cb;
-
-        /// <summary>
-        /// Contains a comma-separated list of allowed protocols. This is not used while encoding. When decoding this is set by the user through AVOptions (no
-        /// direct access)
-        /// </summary>
-        [MarshalAs(UnmanagedType.LPStr)]
-        public string protocol_whitelist;
-
-        /// <summary>
         /// Contains a callback for opening new IO streams. Whenever a muxer or a demuxer needs to open an IO stream (typically from avformat_open_input()
         /// for demuxers, but for certain formats can happen at other times as well), it will call this callback to obtain an IO context. Note, certain muxers
         /// and demuxers do nesting, i.e. they open one or more additional internal format contexts. Thus the AVFormatContext pointer passed to this callback
@@ -434,14 +432,9 @@ namespace FFmpegDotNet.Interop.Formats
         /// Contains a callback for closing the streams opened with AVFormatContext.io_open().
         /// </summary>
         [MarshalAs(UnmanagedType.FunctionPtr)]
-        public IOCloseCallback io_close;
+        public IOCloseCallback io_close2;
 
-        /// <summary>
-        /// Contains a comma-separated list of disallowed protocols. This is not used while encoding. When decoding this is set by the user through AVOptions
-        /// (no direct access).
-        /// </summary>
-        [MarshalAs(UnmanagedType.LPStr)]
-        public string protocol_blacklist;
+        Int64 duration_probesize;
 
         #endregion
 
@@ -490,3 +483,24 @@ namespace FFmpegDotNet.Interop.Formats
         #endregion
     }
 }
+/*
+        /// <summary>
+        /// Contains the transport stream ID. This will be moved into demuxer private options. Thus no API/ABI compatibility.
+        /// </summary>
+        public int ts_id;
+
+        /// <summary>
+        /// Contains an opaque field for libavformat internal usage. Must not be accessed in any way by callers.
+        /// </summary>
+        public IntPtr @internal;
+
+        /// <summary>
+        /// Contains a callback, which is called to open further IO contexts when needed for demuxing. This can be set by the user application to perform
+        /// security checks on the URLs before opening them. The function should behave like avio_open2(), AVFormatContext is provided as contextual
+        /// information and to reach AVFormatContext.opaque. If <c>null</c> then some simple checks are used together with avio_open2(). Must not be accessed
+        /// directly from outside avformat. For demuxing this is ste by the user. This is deprecated, use io_open and io_close instead.
+        /// </summary>
+        [MarshalAs(UnmanagedType.FunctionPtr)]
+        public OpenCallback open_cb;
+
+*/
