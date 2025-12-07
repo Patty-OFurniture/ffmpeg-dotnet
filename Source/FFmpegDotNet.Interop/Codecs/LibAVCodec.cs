@@ -87,8 +87,19 @@ namespace FFmpegDotNet.Interop.Codecs
         /// Fress a packet.
         /// </summary>
         /// <param name="pkt">A pointer to the <see cref="AVPacket"/> that is to be freed.</param>
+        [Obsolete("2015-10-29 - lavc 57.12.100 / 57.8.0 - avcodec.h Deprecate av_free_packet(). Use av_packet_unref() as replacement, it resets the packet in a more consistent way.", false)]
         [DllImport(Libraries.AVCodec)]
         public static extern void av_free_packet(IntPtr pkt);
+
+        [DllImport(Libraries.AVCodec)]
+        public static extern void av_packet_unref(IntPtr pkt);
+
+        [DllImport(Libraries.AVCodec)]
+        public static extern IntPtr avcodec_alloc_context3(IntPtr codec); // pass AVCodec, returns AVCodecContext
+
+        [DllImport(Libraries.AVCodec)]
+        public static extern int avcodec_parameters_to_context(AVCodecContext codec,
+                                  AVCodecParameters par);
 
         /// <summary>
         /// Decodes the video frame of size avpkt->size from avpkt->data into picture. Some decoders may support multiple frames in a single AVPacket, such
@@ -110,8 +121,17 @@ namespace FFmpegDotNet.Interop.Codecs
         /// might in addition need other fields like flags & AV_PKT_FLAG_KEY. All decoders are designed to use the least fields possible.
         /// </param>
         /// <returns>Returns the number of byets used or zero if no frame could be decompressed. On error a negative value is returned.</returns>
+        [Obsolete("Use avcodec_send_packet() and avcodec_receive_frame().", false)]
         [DllImport(Libraries.AVCodec)]
         public static extern int avcodec_decode_video2(IntPtr avctx, IntPtr picture, ref int got_picture_ptr, IntPtr avpkt);
+
+        // int avcodec_send_packet ( AVCodecContext* avctx, const AVPacket* avpkt ) 
+        /// <param name="avpkt">A pointer to the <see cref="AVPacket"/>.</param>
+        [DllImport(Libraries.AVCodec)]
+        public static extern int avcodec_send_packet(IntPtr avctx, IntPtr avpkt);
+
+        [DllImport(Libraries.AVCodec)]
+        public static extern int avcodec_receive_frame(IntPtr avctx, IntPtr avpkt);
 
         /// <summary>
         /// Gets the PKT timebase.
@@ -165,6 +185,9 @@ namespace FFmpegDotNet.Interop.Codecs
 
         [DllImport(Libraries.AVCodec)]
         public static extern void av_codec_set_chroma_intra_matrix(IntPtr avctx, IntPtr val);
+
+        [DllImport(Libraries.AVCodec)]
+        public static extern IntPtr av_packet_alloc(); // AVPacket
 
         #endregion 
     }
